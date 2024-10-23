@@ -1,9 +1,9 @@
 [
     {
         "email": "john.doe@example.com",
-        "is_admin": false,
-        "password": "Imadogimadog1!",
-        "username": "John Doe"
+        "is_admin": true,
+        "password": "",
+        "username": "John Does"
     },
     {
         "email": "jane.smith@example.com",
@@ -48,8 +48,8 @@
         "username": "Padilla"
     },
     {
-        "email": "jansen@gmail.com",
-        "is_admin": false,
+        "email": "mikmiksaculsan@gmail.com",
+        "is_admin": true,
         "password": "imadogimadog",
         "username": "jansen"
     }

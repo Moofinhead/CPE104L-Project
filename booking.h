@@ -5,8 +5,10 @@
 #include <string>
 #include "nlohmann/json.hpp"
 
+using namespace std;
 using json = nlohmann::json;
 
+// Price details structure for booking calculations
 struct PriceDetails {
     int subtotal;
     int addonTotal;
@@ -17,17 +19,22 @@ struct PriceDetails {
     int discountedTotal;
 };
 
-int calculateNights(const std::string& checkInDate, const std::string& checkOutDate);
+// Function to calculate the number of nights between two dates
+int calculateNights(const string& checkInDate, const string& checkOutDate);
 
-PriceDetails calculateActualTotal(const json& room, const json& addons, int numberOfNights, const std::string& couponCode);
+// Function to calculate the total price including addons
+PriceDetails calculateActualTotal(const json& room, const json& addons, int numberOfNights, const string& couponCode);
 
-double useCoupon(const std::string& couponCode, const std::string& bookingId, const std::string& roomId, 
-                 const std::string& checkInDate, const std::string& checkOutDate, int guestCount, 
-                 int total, const std::string& bookingTime, int numberOfNights);
+// Function to apply a coupon to a booking
+double useCoupon(const string& couponCode, const string& bookingId, const string& roomId, 
+                 const string& checkInDate, const string& checkOutDate, int guestCount, 
+                 int total, const string& bookingTime, int numberOfNights);
 
-json bookRoom(const std::string& roomId, const json& addons, const std::string& checkInDate, 
-              const std::string& checkOutDate, int guestCount, const json& userInfo, const std::string& couponCode);
+// Function to book a room
+json bookRoom(const string& roomId, const json& addons, const string& checkInDate, 
+              const string& checkOutDate, int guestCount, const json& userInfo, const string& couponCode);
 
-// ... any other function declarations
-int getMaxGuests(const std::string& roomId);
+// Function to get the maximum number of guests for a room
+int getMaxGuests(const string& roomId);
+
 #endif // BOOKING_H

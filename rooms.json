@@ -36,14 +36,14 @@
     },
     {
         "basePrice": 100,
-        "bookId": "BOOK-1726976924",
+        "bookId": null,
         "id": "standard-006",
-        "isBooked": true,
+        "isBooked": false,
         "type": "Standard Room"
     },
     {
         "basePrice": 100,
-        "bookId": "BOOK-1726976964",
+        "bookId": "BOOK-1729482180",
         "id": "standard-007",
         "isBooked": true,
         "type": "Standard Room"
@@ -141,9 +141,9 @@
     },
     {
         "basePrice": 500,
-        "bookId": null,
+        "bookId": "BOOK-1728447114",
         "id": "penthouse-001",
-        "isBooked": false,
+        "isBooked": true,
         "type": "Penthouse"
     },
     {
@@ -208,5 +208,10 @@
         "id": "penthouse-010",
         "isBooked": false,
         "type": "Penthouse"
+    },
+    {
+        "basePrice": "9999",
+        "id": "bahaynisirjp",
+        "type": "living room"
     }
 ]

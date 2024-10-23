@@ -4,11 +4,11 @@
 
 #include <string>
 #include "nlohmann/json.hpp"
-
-bool userExists(const std::string& username, const std::string& email);
-void appendUser(const std::string& username, const std::string& email, const std::string& password);
-void handleRegistration(const std::string& username, const std::string& email, 
-                        const std::string& password, const std::string& confirmPassword, 
-                        int& status, std::string& message);
+using namespace std;
+bool userExists(const string& username, const string& email);
+void appendUser(const string& username, const string& email, const string& password);
+void handleRegistration(const string& username, const string& email, 
+                        const string& password, const string& confirmPassword, 
+                        int& status, string& message);
 
 #endif // REGISTER_H

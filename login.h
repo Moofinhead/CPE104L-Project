@@ -2,8 +2,8 @@
 #define LOGIN_H
 
 #include <string>
-
-void handleLogin(const std::string& email, const std::string& password,
-    int& status, std::string& message, std::string& nickname, bool& isAdmin);
+using namespace std;
+void handleLogin(const string& email, const string& password,
+    int& status, string& message, string& nickname, bool& isAdmin);
 
 #endif // LOGIN_H

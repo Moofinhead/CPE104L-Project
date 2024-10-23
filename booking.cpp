@@ -7,33 +7,35 @@
 #include <ctime>
 #include <iostream>
 
+//Ang ingay kase ng compiler
 #define _CRT_SECURE_NO_WARNINGS
 
+using namespace std;
 using json = nlohmann::json;
 
 // Helper function to parse date string
-std::chrono::system_clock::time_point parseDate(const std::string& dateStr) {
-    std::tm tm = {};
-    std::istringstream ss(dateStr);
-    ss >> std::get_time(&tm, "%Y-%m-%d");
-    return std::chrono::system_clock::from_time_t(std::mktime(&tm));
+chrono::system_clock::time_point parseDate(const string& dateStr) {
+    tm tm = {};
+    istringstream ss(dateStr);
+    ss >> get_time(&tm, "%Y-%m-%d");
+    return chrono::system_clock::from_time_t(mktime(&tm));
 }
 
 // Helper function to calculate number of nights
-int calculateNights(const std::string& checkInDate, const std::string& checkOutDate) {
+int calculateNights(const string& checkInDate, const string& checkOutDate) {
     auto start = parseDate(checkInDate);
     auto end = parseDate(checkOutDate);
-    return static_cast<int>(std::chrono::duration_cast<std::chrono::hours>(end - start).count() / 24);
+    return static_cast<int>(chrono::duration_cast<chrono::hours>(end - start).count() / 24);
 }
 
-int getMaxGuests(const std::string& roomId) {
+int getMaxGuests(const string& roomId) {
     // Read rooms from JSON file
-    std::ifstream roomsFile("rooms.json");
+    ifstream roomsFile("rooms.json");
     json rooms;
     roomsFile >> rooms;
 
     // Find the room
-    auto room = std::find_if(rooms.begin(), rooms.end(), [&roomId](const json& room) {
+    auto room = find_if(rooms.begin(), rooms.end(), [&roomId](const json& room) {
         return room["id"] == roomId;
     });
 
@@ -41,7 +43,7 @@ int getMaxGuests(const std::string& roomId) {
         return 0; // Room not found, return 0 or handle error as appropriate
     }
 
-    std::string roomType = (*room)["type"];
+    string roomType = (*room)["type"];
     
     if (roomType == "Standard Room") {
         return 3;
@@ -54,16 +56,16 @@ int getMaxGuests(const std::string& roomId) {
     }
 }
 
-PriceDetails calculateActualTotal(const json& room, const json& addons, int numberOfNights, const std::string& couponCode) {
+PriceDetails calculateActualTotal(const json& room, const json& addons, int numberOfNights, const string& couponCode) {
     PriceDetails details;
     
-    std::cout << "Calculating actual total for room: " << room.dump(2) << std::endl;
-    std::cout << "Addons: " << addons.dump(2) << std::endl;
-    std::cout << "Number of nights: " << numberOfNights << std::endl;
-    std::cout << "Coupon code received: " << (couponCode.empty() ? "None" : couponCode) << std::endl;
+    cout << "Calculating actual total for room: " << room.dump(2) << endl;
+    cout << "Addons: " << addons.dump(2) << endl;
+    cout << "Number of nights: " << numberOfNights << endl;
+    cout << "Coupon code received: " << (couponCode.empty() ? "None" : couponCode) << endl;
 
     if (!room.contains("basePrice")) {
-        std::cerr << "Error: Room does not contain basePrice" << std::endl;
+        cerr << "Error: Room does not contain basePrice" << endl;
         return PriceDetails{0, 0, 0, 0, 0, numberOfNights};
     }
     
@@ -72,67 +74,67 @@ PriceDetails calculateActualTotal(const json& room, const json& addons, int numb
     details.addonTotal = 0;
     details.numberOfNights = numberOfNights;
 
-    std::cout << "Base price per night: " << details.basePricePerNight << " PHP" << std::endl;
-    std::cout << "Initial subtotal: " << details.subtotal << " PHP" << std::endl;
+    cout << "Base price per night: " << details.basePricePerNight << " PHP" << endl;
+    cout << "Initial subtotal: " << details.subtotal << " PHP" << endl;
 
     if (addons.contains("enableWifi") && addons["enableWifi"]) {
         details.addonTotal += 500;
-        std::cout << "Added WiFi: +500 PHP" << std::endl;
+        cout << "Added WiFi: +500 PHP" << endl;
     }
     if (addons.contains("smokingZone") && addons["smokingZone"]) {
         details.addonTotal += 750;
-        std::cout << "Added Smoking Zone: +750 PHP" << std::endl;
+        cout << "Added Smoking Zone: +750 PHP" << endl;
     }
     if (addons.contains("view")) {
-        std::string view = addons["view"];
+        string view = addons["view"];
         if (view == "City") {
             details.addonTotal += 1000;
-            std::cout << "Added City View: +1000 PHP" << std::endl;
+            cout << "Added City View: +1000 PHP" << endl;
         }
         else if (view == "Ocean") {
             details.addonTotal += 1500;
-            std::cout << "Added Ocean View: +1500 PHP" << std::endl;
+            cout << "Added Ocean View: +1500 PHP" << endl;
         }
         else if (view == "Mountain") {
             details.addonTotal += 1250;
-            std::cout << "Added Mountain View: +1250 PHP" << std::endl;
+            cout << "Added Mountain View: +1250 PHP" << endl;
         }
     }
     if (addons.contains("serviceGuide") && addons["serviceGuide"]) {
         details.addonTotal += 250;
-        std::cout << "Added Service Guide: +250 PHP" << std::endl;
+        cout << "Added Service Guide: +250 PHP" << endl;
     }
     if (addons.contains("dinner") && addons["dinner"]) {
         details.addonTotal += 1250;
-        std::cout << "Added Dinner: +1250 PHP" << std::endl;
+        cout << "Added Dinner: +1250 PHP" << endl;
     }
     if (addons.contains("petAllowed") && addons["petAllowed"]) {
         details.addonTotal += 1000;
-        std::cout << "Added Pet Allowance: +1000 PHP" << std::endl;
+        cout << "Added Pet Allowance: +1000 PHP" << endl;
     }
     if (addons.contains("swimmingPool") && addons["swimmingPool"]) {
         details.addonTotal += 750;
-        std::cout << "Added Swimming Pool Access: +750 PHP" << std::endl;
+        cout << "Added Swimming Pool Access: +750 PHP" << endl;
     }
     if (addons.contains("breakfastBuffet") && addons["breakfastBuffet"]) {
         details.addonTotal += 1000;
-        std::cout << "Added Breakfast Buffet: +1000 PHP" << std::endl;
+        cout << "Added Breakfast Buffet: +1000 PHP" << endl;
     }
     if (addons.contains("childCorner") && addons["childCorner"]) {
         details.addonTotal += 500;
-        std::cout << "Added Child Corner: +500 PHP" << std::endl;
+        cout << "Added Child Corner: +500 PHP" << endl;
     }
 
     details.total = details.subtotal + details.addonTotal;
     details.discountedTotal = details.total;  // Initialize discounted total to full total
 
-    std::cout << "Addon total: " << details.addonTotal << " PHP" << std::endl;
-    std::cout << "Subtotal: " << details.subtotal << " PHP" << std::endl;
-    std::cout << "Total before coupon: " << details.total << " PHP" << std::endl;
+    cout << "Addon total: " << details.addonTotal << " PHP" << endl;
+    cout << "Subtotal: " << details.subtotal << " PHP" << endl;
+    cout << "Total before coupon: " << details.total << " PHP" << endl;
 
     // Apply coupon if provided
     if (!couponCode.empty()) {
-        std::string tempBookingId = "TEMP-" + std::to_string(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
+        string tempBookingId = "TEMP-" + to_string(chrono::system_clock::to_time_t(chrono::system_clock::now()));
         double discountFactor = useCoupon(couponCode, tempBookingId, room["id"], 
                                           "2023-01-01", "2023-12-31", // Placeholder dates
                                           1, // Placeholder guest count
@@ -141,14 +143,14 @@ PriceDetails calculateActualTotal(const json& room, const json& addons, int numb
         if (discountFactor < 1.0) {
             details.discountedTotal = static_cast<int>(details.total * discountFactor);
             int couponDiscount = details.total - details.discountedTotal;
-            std::cout << "Coupon " << couponCode << " applied. Discount: " 
-                      << couponDiscount << " PHP" << std::endl;
+            cout << "Coupon " << couponCode << " applied. Discount: " 
+                      << couponDiscount << " PHP" << endl;
         } else {
-            std::cout << "Coupon " << couponCode << " was not valid or not applicable." << std::endl;
+            cout << "Coupon " << couponCode << " was not valid or not applicable." << endl;
         }
     }
 
-    std::cout << "Final discounted total: " << details.discountedTotal << " PHP" << std::endl;
+    cout << "Final discounted total: " << details.discountedTotal << " PHP" << endl;
 
     return details;
 }
@@ -157,7 +159,7 @@ int calculateTotal(const json& room, const json& addons) {
     PriceDetails details;
     
     if (!room.contains("basePrice")) {
-        std::cerr << "Error: Room does not contain basePrice" << std::endl;
+        cerr << "Error: Room does not contain basePrice" << endl;
         return 0;
     }
     
@@ -165,69 +167,69 @@ int calculateTotal(const json& room, const json& addons) {
     details.basePrice = details.basePricePerNight * 50;  // Convert base price to PHP
     details.addonTotal = 0;
 
-    std::cout << "Base price per night: " << details.basePricePerNight << " USD" << std::endl;
-    std::cout << "Base price: " << details.basePrice << " PHP" << std::endl;
+    cout << "Base price per night: " << details.basePricePerNight << " USD" << endl;
+    cout << "Base price: " << details.basePrice << " PHP" << endl;
 
     if (addons.contains("enableWifi") && addons["enableWifi"]) {
         details.addonTotal += 500;
-        std::cout << "Added WiFi: +500 PHP" << std::endl;
+        cout << "Added WiFi: +500 PHP" << endl;
     }
     if (addons.contains("smokingZone") && addons["smokingZone"]) {
         details.addonTotal += 750;
-        std::cout << "Added Smoking Zone: +750 PHP" << std::endl;
+        cout << "Added Smoking Zone: +750 PHP" << endl;
     }
     // ... (other addons)
 
     details.subtotal = details.basePrice + details.addonTotal;
     details.total = details.subtotal;
 
-    std::cout << "Addon total: " << details.addonTotal << " PHP" << std::endl;
-    std::cout << "Subtotal: " << details.subtotal << " PHP" << std::endl;
-    std::cout << "Total: " << details.total << " PHP" << std::endl;
+    cout << "Addon total: " << details.addonTotal << " PHP" << endl;
+    cout << "Subtotal: " << details.subtotal << " PHP" << endl;
+    cout << "Total: " << details.total << " PHP" << endl;
 
     return details.total;  // Return only the total to maintain compatibility
 }
 
-double useCoupon(const std::string& couponCode, const std::string& bookingId, const std::string& roomId, 
-                 const std::string& checkInDate, const std::string& checkOutDate, int guestCount, 
-                 int total, const std::string& bookingTime, int numberOfNights) {
-    std::ifstream couponFile("coupons.json");
+double useCoupon(const string& couponCode, const string& bookingId, const string& roomId, 
+                 const string& checkInDate, const string& checkOutDate, int guestCount, 
+                 int total, const string& bookingTime, int numberOfNights) {
+    ifstream couponFile("coupons.json");
     if (!couponFile.is_open()) {
-        std::cerr << "Error: Unable to open coupons.json" << std::endl;
+        cerr << "Error: Unable to open coupons.json" << endl;
         return 1.0; // No discount
     }
 
     json coupons;
     couponFile >> coupons;
 
-    std::cout << "Checking coupon: " << couponCode << std::endl;
+    cout << "Checking coupon: " << couponCode << endl;
 
     for (const auto& coupon : coupons) {
         if (coupon["name"] == couponCode) {
             bool isValid = true;
             const auto& minimum = coupon["minimum"];
 
-            std::cout << "Coupon found. Checking requirements:" << std::endl;
+            cout << "Coupon found. Checking requirements:" << endl;
 
             // Check all minimum requirements
             if (minimum.contains("numberOfNights")) {
-                std::cout << "  Number of nights - Required: " << minimum["numberOfNights"] 
-                          << ", Actual: " << numberOfNights << std::endl;
+                cout << "  Number of nights - Required: " << minimum["numberOfNights"] 
+                          << ", Actual: " << numberOfNights << endl;
                 if (numberOfNights < minimum["numberOfNights"]) isValid = false;
             }
             if (minimum.contains("guestCount")) {
-                std::cout << "  Guest count - Required: " << minimum["guestCount"] 
-                          << ", Actual: " << guestCount << std::endl;
+                cout << "  Guest count - Required: " << minimum["guestCount"] 
+                          << ", Actual: " << guestCount << endl;
                 if (guestCount < minimum["guestCount"]) isValid = false;
             }
             if (minimum.contains("total")) {
-                std::cout << "  Total - Required: " << minimum["total"] 
-                          << ", Actual: " << total << std::endl;
+                cout << "  Total - Required: " << minimum["total"] 
+                          << ", Actual: " << total << endl;
                 if (total < minimum["total"]) isValid = false;
             }
             if (minimum.contains("roomId")) {
-                std::cout << "  Room ID - Required: " << minimum["roomId"] 
-                          << ", Actual: " << roomId << std::endl;
+                cout << "  Room ID - Required: " << minimum["roomId"] 
+                          << ", Actual: " << roomId << endl;
                 if (roomId != minimum["roomId"]) isValid = false;
             }
 
@@ -238,60 +240,60 @@ double useCoupon(const std::string& couponCode, const std::string& bookingId, co
                 auto minCheckIn = parseDate(minimum["checkInDate"]);
                 auto minCheckOut = parseDate(minimum["checkOutDate"]);
 
-                std::cout << "  Check-in date - Required range: " << minimum["checkInDate"] 
-                          << " to " << minimum["checkOutDate"] << ", Actual: " << checkInDate << std::endl;
+                cout << "  Check-in date - Required range: " << minimum["checkInDate"] 
+                          << " to " << minimum["checkOutDate"] << ", Actual: " << checkInDate << endl;
 
                 if (bookingCheckIn < minCheckIn || bookingCheckOut > minCheckOut) isValid = false;
             }
 
             if (isValid) {
-                std::cout << "Coupon " << couponCode << " is valid and applied." << std::endl;
+                cout << "Coupon " << couponCode << " is valid and applied." << endl;
                 if (coupon.contains("flatDiscount")) {
                     int flatDiscount = coupon["flatDiscount"].get<int>();
                     int totalDiscount = flatDiscount * numberOfNights;
                     double discountRate = 1.0 - (static_cast<double>(totalDiscount) / total);
-                    std::cout << "Flat discount: " << flatDiscount << " PHP per night" << std::endl;
-                    std::cout << "Total discount: " << totalDiscount << " PHP" << std::endl;
-                    return std::max(0.0, discountRate); // Ensure discount doesn't exceed 100%
+                    cout << "Flat discount: " << flatDiscount << " PHP per night" << endl;
+                    cout << "Total discount: " << totalDiscount << " PHP" << endl;
+                    return max(0.0, discountRate); // Ensure discount doesn't exceed 100%
                 } else if (coupon.contains("discountRate")) {
                     double discountRate = coupon["discountRate"].get<double>();
-                    std::cout << "Discount rate: " << (discountRate * 100) << "%" << std::endl;
+                    cout << "Discount rate: " << (discountRate * 100) << "%" << endl;
                     return 1.0 - discountRate;
                 }
             } else {
-                std::cout << "Coupon " << couponCode << " requirements not met." << std::endl;
+                cout << "Coupon " << couponCode << " requirements not met." << endl;
             }
         }
     }
 
-    std::cout << "Coupon " << couponCode << " not found in the coupon list." << std::endl;
+    cout << "Coupon " << couponCode << " not found in the coupon list." << endl;
     return 1.0; // No discount
 }
 
-json bookRoom(const std::string& roomId, const json& addons, const std::string& checkInDate, const std::string& checkOutDate, int guestCount, const json& userInfo, const std::string& couponCode) {
-    std::cout << "Received roomId: " << roomId << std::endl;
-    std::cout << "Received addons: " << addons.dump() << std::endl;
-    std::cout << "Received checkInDate: " << checkInDate << std::endl;
-    std::cout << "Received checkOutDate: " << checkOutDate << std::endl;
-    std::cout << "Received guestCount: " << guestCount << std::endl;
-    std::cout << "Received userInfo: " << userInfo.dump() << std::endl;
-    std::cout << "Received couponCode: " << couponCode << std::endl;
+json bookRoom(const string& roomId, const json& addons, const string& checkInDate, const string& checkOutDate, int guestCount, const json& userInfo, const string& couponCode) {
+    cout << "Received roomId: " << roomId << endl;
+    cout << "Received addons: " << addons.dump() << endl;
+    cout << "Received checkInDate: " << checkInDate << endl;
+    cout << "Received checkOutDate: " << checkOutDate << endl;
+    cout << "Received guestCount: " << guestCount << endl;
+    cout << "Received userInfo: " << userInfo.dump() << endl;
+    cout << "Received couponCode: " << couponCode << endl;
 
     // Read rooms from JSON file
-    std::ifstream roomsFile("rooms.json");
+    ifstream roomsFile("rooms.json");
     if (!roomsFile.is_open()) {
-        std::cerr << "Error: Unable to open rooms.json" << std::endl;
+        cerr << "Error: Unable to open rooms.json" << endl;
         return json({{"error", "Unable to open rooms.json"}});
     }
     json rooms;
     roomsFile >> rooms;
 
     // Find the room
-    auto selectedRoom = std::find_if(rooms.begin(), rooms.end(),
+    auto selectedRoom = find_if(rooms.begin(), rooms.end(),
         [&roomId](const json& room) { return room["id"] == roomId; });
 
     if (selectedRoom == rooms.end()) {
-        std::cerr << "Error: Room not found" << std::endl;
+        cerr << "Error: Room not found" << endl;
         return json({{"error", "Room not found"}});
     }
 
@@ -302,20 +304,20 @@ json bookRoom(const std::string& roomId, const json& addons, const std::string& 
     PriceDetails priceDetails = calculateActualTotal(*selectedRoom, addons, numberOfNights, couponCode);
 
     // Get current time
-    auto now = std::chrono::system_clock::now();
-    std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+    auto now = chrono::system_clock::now();
+    time_t now_c = chrono::system_clock::to_time_t(now);
     
     // Convert to local time
-    std::tm local_tm;
+    tm local_tm;
     localtime_s(&local_tm, &now_c);
     
     // Format the time string
     char buffer[26];
     strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &local_tm);
-    std::string bookingTime(buffer);
+    string bookingTime(buffer);
 
     // Create a unique booking ID
-    std::string bookingId = "BOOK-" + std::to_string(std::chrono::system_clock::to_time_t(now));
+    string bookingId = "BOOK-" + to_string(chrono::system_clock::to_time_t(now));
 
     json booking = {
         {"bookingId", bookingId},
@@ -342,19 +344,19 @@ json bookRoom(const std::string& roomId, const json& addons, const std::string& 
 
     // Read existing bookings
     json bookings;
-    std::ifstream bookingsFile("bookings.json");
+    ifstream bookingsFile("bookings.json");
     if (bookingsFile.is_open()) {
-        std::string bookingsContent((std::istreambuf_iterator<char>(bookingsFile)), std::istreambuf_iterator<char>());
-        std::cout << "bookings.json content: " << bookingsContent << std::endl;
+        string bookingsContent((istreambuf_iterator<char>(bookingsFile)), istreambuf_iterator<char>());
+        cout << "bookings.json content: " << bookingsContent << endl;
         if (!bookingsContent.empty()) {
             bookings = json::parse(bookingsContent);
         } else {
-            std::cout << "Note: bookings.json is empty, initializing as empty array" << std::endl;
+            cout << "Note: bookings.json is empty, initializing as empty array" << endl;
             bookings = json::array();
         }
         bookingsFile.close();
     } else {
-        std::cout << "Note: bookings.json does not exist, creating new file" << std::endl;
+        cout << "Note: bookings.json does not exist, creating new file" << endl;
         bookings = json::array();
     }
 
@@ -362,9 +364,9 @@ json bookRoom(const std::string& roomId, const json& addons, const std::string& 
     bookings.push_back(booking);
 
     // Write updated bookings back to JSON file
-    std::ofstream bookingsOutFile("bookings.json");
+    ofstream bookingsOutFile("bookings.json");
     if (!bookingsOutFile.is_open()) {
-        std::cerr << "Error: Unable to open bookings.json for writing" << std::endl;
+        cerr << "Error: Unable to open bookings.json for writing" << endl;
         return json({{"error", "Unable to update bookings.json"}});
     }
     bookingsOutFile << bookings.dump(4);
@@ -375,15 +377,15 @@ json bookRoom(const std::string& roomId, const json& addons, const std::string& 
     (*selectedRoom)["bookId"] = booking["bookingId"];
 
     // Write updated rooms back to JSON file
-    std::ofstream outFile("rooms.json");
+    ofstream outFile("rooms.json");
     if (!outFile.is_open()) {
-        std::cerr << "Error: Unable to open rooms.json for writing" << std::endl;
+        cerr << "Error: Unable to open rooms.json for writing" << endl;
         return json({{"error", "Unable to update rooms.json"}});
     }
     outFile << rooms.dump(4);
     outFile.close();
 
-    std::cout << "Booking successfully added to bookings.json and rooms.json updated" << std::endl;
+    cout << "Booking successfully added to bookings.json and rooms.json updated" << endl;
 
     return json({
         {"message", "Booking successful"},

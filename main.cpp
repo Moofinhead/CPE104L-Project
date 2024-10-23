@@ -11,6 +11,18 @@
     using namespace std;
     using json = nlohmann::json;
 
+    // Define the allowed origin
+    const std::string ALLOWED_ORIGIN = "http://localhost:3000";  
+
+    // Helper function to set CORS headers
+    void setCorsHeaders(httplib::Response &res) {
+        res.set_header("Access-Control-Allow-Origin", ALLOWED_ORIGIN.c_str());
+        res.set_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        res.set_header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        res.set_header("Access-Control-Allow-Max-Age", "3600");
+        res.set_header("Access-Control-Allow-Credentials", "true");
+    }
+
     // Function to create, output, and save a JSON array
     void createAndSaveJsonArray() {
         json users = json::array({
@@ -119,10 +131,25 @@
         }
     }
 
+    // Helper function to convert query params to JSON
+    json paramsToJson(const httplib::Params& params) {
+        json result;
+        for (const auto& param : params) {
+            result[param.first] = param.second;
+        }
+        return result;
+    }
+
     int main() {
         httplib::Server svr;
 
-        // Add a pre-flight OPTIONS handler for CORS (register)
+        // Global CORS middleware
+        svr.Options(".*", [](const httplib::Request& req, httplib::Response& res) {
+            setCorsHeaders(res);
+            res.status = 204;  // No content
+        });
+
+        // Registration route
         svr.Options("/register", [](const httplib::Request&, httplib::Response& res) {
             res.set_header("Access-Control-Allow-Origin", "*");
             res.set_header("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -130,7 +157,6 @@
             res.status = 204; // No content
         });
 
-        // Registration route
         svr.Post("/register", [](const httplib::Request& req, httplib::Response& res) {
             // Set CORS headers
             res.set_header("Access-Control-Allow-Origin", "*");
@@ -151,7 +177,7 @@
             res.set_content(message, "text/plain");
         });
 
-        // Add a pre-flight OPTIONS handler for login
+        // Login route
         svr.Options("/login", [](const httplib::Request&, httplib::Response& res) {
             res.set_header("Access-Control-Allow-Origin", "*");
             res.set_header("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -159,7 +185,6 @@
             res.status = 204; // No content
         });
 
-        // Login route
         svr.Post("/login", [](const httplib::Request& req, httplib::Response& res) {
             // Set CORS headers
             res.set_header("Access-Control-Allow-Origin", "*");
@@ -189,7 +214,7 @@
             }
         });
 
-        // Add a pre-flight OPTIONS handler for CORS (booking)
+        // Booking routes
         svr.Options("/book", [](const httplib::Request&, httplib::Response& res) {
             res.set_header("Access-Control-Allow-Origin", "*");
             res.set_header("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -197,27 +222,23 @@
             res.status = 204; // No content
         });
 
-        // Get max guests route
         svr.Get("/get-max-guests", [](const httplib::Request& req, httplib::Response& res) {
             res.set_header("Access-Control-Allow-Origin", "*");
             
             std::string roomId = req.get_param_value("roomId");
             
-            // Debug output
             std::cout << "\n--- Debug: /get-max-guests ---" << std::endl;
             std::cout << "Received request with roomId: " << roomId << std::endl;
 
             int maxGuests = getMaxGuests(roomId);
             json response = {{"maxGuests", maxGuests}};
 
-            // Debug output
             std::cout << "Sending response: " << response.dump(2) << std::endl;
             std::cout << "--- End Debug: /get-max-guests ---\n" << std::endl;
 
             res.set_content(response.dump(), "application/json");
         });
 
-        // Calculate total route
         svr.Options("/calculate-total", [](const httplib::Request& req, httplib::Response& res) {
             res.set_header("Access-Control-Allow-Origin", "*");
             res.set_header("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -299,7 +320,6 @@
             }
         });
 
-        // Booking route
         svr.Post("/book", [](const httplib::Request& req, httplib::Response& res) {
             res.set_header("Access-Control-Allow-Origin", "*");
             res.set_header("Access-Control-Allow-Methods", "POST");
@@ -335,8 +355,6 @@
             res.set_content(result.dump(), "application/json");
         });
 
-
-        // Available Rooms route
         svr.Get("/available-rooms", [](const httplib::Request& req, httplib::Response& res) {
             res.set_header("Access-Control-Allow-Origin", "*");
             res.set_header("Access-Control-Allow-Methods", "GET");
@@ -383,310 +401,307 @@
             res.set_content(availableRooms.dump(), "application/json");
         });
 
-
-        // Dashboard routes
-        // Get user info
-        svr.Get("/dashboard/user", [](const httplib::Request& req, httplib::Response& res) {
-            res.set_header("Access-Control-Allow-Origin", "*");
-            res.set_header("Access-Control-Allow-Methods", "GET");
-            res.set_header("Access-Control-Allow-Headers", "Content-Type");
-
+        // User dashboard routes
+        svr.Get("/user/info", [](const httplib::Request& req, httplib::Response& res) {
+            setCorsHeaders(res);
+            debugLog("Received GET request to /user/info");
+            debugLog("Query params:", paramsToJson(req.params));
+            
             auto email = req.get_param_value("email");
-            std::cout << "Getting user info for email: " << email << std::endl;
-
             json userInfo = getUserInfo(email);
-            if (!userInfo.empty()) {
-                std::cout << "User info retrieved successfully" << std::endl;
-                res.set_content(userInfo.dump(), "application/json");
-            } else {
-                std::cout << "User not found" << std::endl;
-                res.status = 404;
-                res.set_content("User not found", "text/plain");
-            }
+            
+            debugLog("Sending response:", userInfo);
+            res.set_content(userInfo.dump(), "application/json");
         });
 
-        // Update user info
-        svr.Put("/dashboard/user", [](const httplib::Request& req, httplib::Response& res) {
-            res.set_header("Access-Control-Allow-Origin", "*");
-            res.set_header("Access-Control-Allow-Methods", "PUT");
-            res.set_header("Access-Control-Allow-Headers", "Content-Type");
-
+        svr.Post("/user/update", [](const httplib::Request& req, httplib::Response& res) {
+            setCorsHeaders(res);
+            debugLog("Received POST request to /user/update");
+            debugLog("Query params:", paramsToJson(req.params));
+            debugLog("Request body:", json::parse(req.body));
+            
             auto email = req.get_param_value("email");
             json newInfo = json::parse(req.body);
-            std::cout << "Updating user info for email: " << email << std::endl;
-
-            if (updateUserInfo(email, newInfo)) {
-                std::cout << "User info updated successfully" << std::endl;
-                res.set_content("User info updated", "text/plain");
-            } else {
-                std::cout << "Failed to update user info" << std::endl;
-                res.status = 404;
-                res.set_content("User not found", "text/plain");
-            }
+            bool success = updateUserInfo(email, newInfo);
+            
+            json response = {{"success", success}};
+            debugLog("Sending response:", response);
+            res.set_content(response.dump(), "application/json");
         });
 
-        // Delete account
-        svr.Delete("/dashboard/user", [](const httplib::Request& req, httplib::Response& res) {
-            res.set_header("Access-Control-Allow-Origin", "*");
-            res.set_header("Access-Control-Allow-Methods", "DELETE");
-            res.set_header("Access-Control-Allow-Headers", "Content-Type");
-
+        svr.Post("/user/delete", [](const httplib::Request& req, httplib::Response& res) {
             auto email = req.get_param_value("email");
-            std::cout << "Deleting account for email: " << email << std::endl;
-
-            if (deleteAccount(email)) {
-                std::cout << "Account deleted successfully" << std::endl;
-                res.set_content("Account deleted", "text/plain");
-            } else {
-                std::cout << "Failed to delete account" << std::endl;
-                res.status = 404;
-                res.set_content("User not found", "text/plain");
-            }
+            bool success = deleteAccount(email);
+            res.set_content(json({{"success", success}}).dump(), "application/json");
         });
 
-        // Get user bookings
-        svr.Get("/dashboard/user/bookings", [](const httplib::Request& req, httplib::Response& res) {
-            res.set_header("Access-Control-Allow-Origin", "*");
-            res.set_header("Access-Control-Allow-Methods", "GET");
-            res.set_header("Access-Control-Allow-Headers", "Content-Type");
-
+        svr.Get("/user/bookings", [](const httplib::Request& req, httplib::Response& res) {
             auto email = req.get_param_value("email");
-            std::cout << "Getting bookings for email: " << email << std::endl;
-
             json bookings = getUserBookings(email);
-            std::cout << "Retrieved " << bookings.size() << " bookings" << std::endl;
             res.set_content(bookings.dump(), "application/json");
         });
 
-
-        // Cancel booking
-        svr.Delete("/dashboard/user/booking", [](const httplib::Request& req, httplib::Response& res) {
-            res.set_header("Access-Control-Allow-Origin", "*");
-            res.set_header("Access-Control-Allow-Methods", "DELETE");
-            res.set_header("Access-Control-Allow-Headers", "Content-Type");
-
+        svr.Post("/user/cancel-booking", [](const httplib::Request& req, httplib::Response& res) {
             auto email = req.get_param_value("email");
             auto bookingId = req.get_param_value("bookingId");
-            std::cout << "Cancelling booking " << bookingId << " for email: " << email << std::endl;
-
-            if (cancelBooking(email, bookingId)) {
-                std::cout << "Booking cancelled successfully" << std::endl;
-                res.set_content("Booking cancelled", "text/plain");
-            } else {
-                std::cout << "Failed to cancel booking" << std::endl;
-                res.status = 404;
-                res.set_content("Booking not found", "text/plain");
-            }
+            bool success = cancelBooking(email, bookingId);
+            res.set_content(json({{"success", success}}).dump(), "application/json");
         });
 
-        // Admin routes
-        // Get all bookings
-        svr.Get("/dashboard/admin/bookings", [](const httplib::Request& req, httplib::Response& res) {
-            res.set_header("Access-Control-Allow-Origin", "*");
-            res.set_header("Access-Control-Allow-Methods", "GET");
-            res.set_header("Access-Control-Allow-Headers", "Content-Type");
-
-            std::cout << "Getting all bookings" << std::endl;
+        // Admin dashboard routes
+        svr.Get("/admin/bookings", [](const httplib::Request& req, httplib::Response& res) {
+            setCorsHeaders(res);  // Ensure CORS headers are set for this route
+            debugLog("Received GET request to /admin/bookings");
+            
             json bookings = getAllBookings();
-            std::cout << "Retrieved " << bookings.size() << " bookings" << std::endl;
+            
+            debugLog("Sending response:", bookings);
             res.set_content(bookings.dump(), "application/json");
         });
 
-        // Get all users
-        svr.Get("/dashboard/admin/users", [](const httplib::Request& req, httplib::Response& res) {
-            res.set_header("Access-Control-Allow-Origin", "*");
-            res.set_header("Access-Control-Allow-Methods", "GET");
-            res.set_header("Access-Control-Allow-Headers", "Content-Type");
+        svr.Get(R"(/admin/rooms(?:/(.+))?)", [](const httplib::Request& req, httplib::Response& res) {
+            setCorsHeaders(res);
+            std::string roomId = req.matches.size() > 1 ? req.matches[1].str() : "";
+            debugLog("Received GET request to /admin/rooms" + (roomId.empty() ? "" : "/" + roomId));
+            
+            json roomInfo = getRoomList(roomId);
+            
+            if (!roomId.empty() && roomInfo.is_null()) {
+                debugLog("Room not found, sending 404");
+                res.status = 404;
+                json errorResponse = {{"error", "Room not found"}};
+                res.set_content(errorResponse.dump(), "application/json");
+            } else {
+                debugLog("Sending response:", roomInfo);
+                res.set_content(roomInfo.dump(), "application/json");
+            }
+        });
 
-            std::cout << "Getting all users" << std::endl;
+        svr.Post("/admin/rooms", [](const httplib::Request& req, httplib::Response& res) {
+            setCorsHeaders(res);
+            debugLog("Received POST request to /admin/rooms");
+            debugLog("Request body:", json::parse(req.body));
+            
+            json roomInfo = json::parse(req.body);
+            bool success = addRoom(roomInfo);
+            
+            json response = {{"success", success}};
+            debugLog("Sending response:", response);
+            res.set_content(response.dump(), "application/json");
+        });
+
+        svr.Put(R"(/admin/rooms/(.+))", [](const httplib::Request& req, httplib::Response& res) {
+            setCorsHeaders(res);
+            auto roomId = req.matches[1].str();
+            debugLog("Received PUT request to /admin/rooms/" + std::string(roomId));
+            debugLog("Request body:", json::parse(req.body));
+            
+            json newInfo = json::parse(req.body);
+            bool success = editRoom(roomId, newInfo);
+            
+            json response = {{"success", success}};
+            debugLog("Sending response:", response);
+            res.set_content(response.dump(), "application/json");
+        });
+
+        svr.Delete(R"(/admin/rooms/(.+))", [](const httplib::Request& req, httplib::Response& res) {
+            setCorsHeaders(res);
+            auto roomId = req.matches[1].str();
+            debugLog("Received DELETE request to /admin/rooms/" + std::string(roomId));
+            
+            bool success = deleteRoom(roomId);
+            
+            json response = {{"success", success}};
+            debugLog("Sending response:", response);
+            res.set_content(response.dump(), "application/json");
+        });
+
+        svr.Post("/admin/add-room", [](const httplib::Request& req, httplib::Response& res) {
+            debugLog("Received POST request to /admin/add-room");
+            debugLog("Request body:", json::parse(req.body));
+            
+            json roomInfo = json::parse(req.body);
+            bool success = addRoom(roomInfo);
+            
+            json response = {{"success", success}};
+            debugLog("Sending response:", response);
+            res.set_content(response.dump(), "application/json");
+        });
+
+        svr.Post("/admin/edit-room", [](const httplib::Request& req, httplib::Response& res) {
+            debugLog("Received POST request to /admin/edit-room");
+            debugLog("Request body:", json::parse(req.body));
+            
+            json requestData = json::parse(req.body);
+            std::string roomId = requestData["roomId"];
+            json newInfo = requestData["newInfo"];
+            bool success = editRoom(roomId, newInfo);
+            
+            json response = {{"success", success}};
+            debugLog("Sending response:", response);
+            res.set_content(response.dump(), "application/json");
+        });
+
+        svr.Post("/admin/delete-room", [](const httplib::Request& req, httplib::Response& res) {
+            debugLog("Received POST request to /admin/delete-room");
+            debugLog("Request body:", json::parse(req.body));
+            
+            json requestData = json::parse(req.body);
+            std::string roomId = requestData["roomId"];
+            bool success = deleteRoom(roomId);
+            
+            json response = {{"success", success}};
+            debugLog("Sending response:", response);
+            res.set_content(response.dump(), "application/json");
+        });
+
+        svr.Post("/admin/add-user", [](const httplib::Request& req, httplib::Response& res) {
+            json userInfo = json::parse(req.body);
+            bool success = addUser(userInfo);
+            res.set_content(json({{"success", success}}).dump(), "application/json");
+        });
+
+        svr.Post("/admin/remove-user", [](const httplib::Request& req, httplib::Response& res) {
+            auto email = req.get_param_value("email");
+            bool success = removeUser(email);
+            res.set_content(json({{"success", success}}).dump(), "application/json");
+        });
+
+        svr.Post("/admin/edit-user", [](const httplib::Request& req, httplib::Response& res) {
+            auto email = req.get_param_value("email");
+            json newInfo = json::parse(req.body);
+            bool success = editUser(email, newInfo);
+            res.set_content(json({{"success", success}}).dump(), "application/json");
+        });
+
+        svr.Post("/admin/remove-booking", [](const httplib::Request& req, httplib::Response& res) {
+            setCorsHeaders(res);
+            debugLog("Received POST request to /admin/remove-booking");
+            
+            json requestData = json::parse(req.body);
+            std::string bookingId = requestData["bookingId"];
+            bool success = removeBooking(bookingId);
+            
+            json response = {{"success", success}};
+            debugLog("Sending response:", response);
+            res.set_content(response.dump(), "application/json");
+        });
+
+        svr.Get("/admin/bookings", [](const httplib::Request& req, httplib::Response& res) {
+            setCorsHeaders(res);
+            json bookings = getAllBookings();
+            res.set_content(bookings.dump(), "application/json");
+        });
+
+        svr.Get(R"(/admin/bookings/(.+))", [](const httplib::Request& req, httplib::Response& res) {
+            setCorsHeaders(res);
+            auto bookingId = req.matches[1].str();
+            json booking = getBooking(bookingId);
+            if (!booking.is_null()) {
+                res.set_content(booking.dump(), "application/json");
+            } else {
+                res.status = 404;
+                res.set_content(json({{"error", "Booking not found"}}).dump(), "application/json");
+            }
+        });
+
+        svr.Delete(R"(/admin/bookings/(.+))", [](const httplib::Request& req, httplib::Response& res) {
+            setCorsHeaders(res);
+            auto bookingId = req.matches[1].str();
+            bool success = removeBooking(bookingId);
+            if (success) {
+                res.set_content(json({{"success", true}}).dump(), "application/json");
+            } else {
+                res.status = 404;
+                res.set_content(json({{"error", "Booking not found or could not be deleted"}}).dump(), "application/json");
+            }
+        });
+
+        svr.Get("/admin/users", [](const httplib::Request& req, httplib::Response& res) {
+            setCorsHeaders(res);
             json users = getAllUsers();
-            std::cout << "Retrieved " << users.size() << " users" << std::endl;
             res.set_content(users.dump(), "application/json");
         });
 
-        // Add booking
-        svr.Post("/dashboard/admin/booking", [](const httplib::Request& req, httplib::Response& res) {
-            res.set_header("Access-Control-Allow-Origin", "*");
-            res.set_header("Access-Control-Allow-Methods", "POST");
-            res.set_header("Access-Control-Allow-Headers", "Content-Type");
-
-            json bookingInfo = json::parse(req.body);
-            std::cout << "Adding new booking" << std::endl;
-
-            if (addBooking(bookingInfo)) {
-                std::cout << "Booking added successfully" << std::endl;
-                res.set_content("Booking added", "text/plain");
-            } else {
-                std::cout << "Failed to add booking" << std::endl;
-                res.status = 500;
-                res.set_content("Failed to add booking", "text/plain");
-            }
-        });
-
-        // Remove booking
-        svr.Delete("/dashboard/admin/booking", [](const httplib::Request& req, httplib::Response& res) {
-            res.set_header("Access-Control-Allow-Origin", "*");
-            res.set_header("Access-Control-Allow-Methods", "DELETE");
-            res.set_header("Access-Control-Allow-Headers", "Content-Type");
-
-            auto bookingId = req.get_param_value("bookingId");
-            std::cout << "Removing booking: " << bookingId << std::endl;
-
-            if (removeBooking(bookingId)) {
-                std::cout << "Booking removed successfully" << std::endl;
-                res.set_content("Booking removed", "text/plain");
-            } else {
-                std::cout << "Failed to remove booking" << std::endl;
-                res.status = 404;
-                res.set_content("Booking not found", "text/plain");
-            }
-        });
-
-        // Edit booking
-        svr.Put("/dashboard/admin/booking", [](const httplib::Request& req, httplib::Response& res) {
-            res.set_header("Access-Control-Allow-Origin", "*");
-            res.set_header("Access-Control-Allow-Methods", "PUT");
-            res.set_header("Access-Control-Allow-Headers", "Content-Type");
-
-            auto bookingId = req.get_param_value("bookingId");
-            json newInfo = json::parse(req.body);
-            std::cout << "Editing booking: " << bookingId << std::endl;
-
-            if (editBooking(bookingId, newInfo)) {
-                std::cout << "Booking edited successfully" << std::endl;
-                res.set_content("Booking edited", "text/plain");
-            } else {
-                std::cout << "Failed to edit booking" << std::endl;
-                res.status = 404;
-                res.set_content("Booking not found", "text/plain");
-            }
-        });
-
-        // Add user
-        svr.Post("/dashboard/admin/user", [](const httplib::Request& req, httplib::Response& res) {
-            res.set_header("Access-Control-Allow-Origin", "*");
-            res.set_header("Access-Control-Allow-Methods", "POST");
-            res.set_header("Access-Control-Allow-Headers", "Content-Type");
-
+        svr.Post("/admin/users", [](const httplib::Request& req, httplib::Response& res) {
+            setCorsHeaders(res);
             json userInfo = json::parse(req.body);
-            std::cout << "Adding new user" << std::endl;
-
-            if (addUser(userInfo)) {
-                std::cout << "User added successfully" << std::endl;
-                res.set_content("User added", "text/plain");
-            } else {
-                std::cout << "Failed to add user" << std::endl;
-                res.status = 500;
-                res.set_content("Failed to add user", "text/plain");
-            }
+            bool success = addUser(userInfo);
+            res.set_content(json({{"success", success}}).dump(), "application/json");
         });
 
-        // Remove user
-        svr.Delete("/dashboard/admin/user", [](const httplib::Request& req, httplib::Response& res) {
-            res.set_header("Access-Control-Allow-Origin", "*");
-            res.set_header("Access-Control-Allow-Methods", "DELETE");
-            res.set_header("Access-Control-Allow-Headers", "Content-Type");
-
-            auto email = req.get_param_value("email");
-            std::cout << "Removing user: " << email << std::endl;
-
-            if (removeUser(email)) {
-                std::cout << "User removed successfully" << std::endl;
-                res.set_content("User removed", "text/plain");
-            } else {
-                std::cout << "Failed to remove user" << std::endl;
-                res.status = 404;
-                res.set_content("User not found", "text/plain");
-            }
-        });
-
-        // Edit user
-        svr.Put("/dashboard/admin/user", [](const httplib::Request& req, httplib::Response& res) {
-            res.set_header("Access-Control-Allow-Origin", "*");
-            res.set_header("Access-Control-Allow-Methods", "PUT");
-            res.set_header("Access-Control-Allow-Headers", "Content-Type");
-
-            auto email = req.get_param_value("email");
+        svr.Put("/admin/users/:email", [](const httplib::Request& req, httplib::Response& res) {
+            setCorsHeaders(res);
+            auto email = req.path_params.at("email");
             json newInfo = json::parse(req.body);
-            std::cout << "Editing user: " << email << std::endl;
-
-            if (editUser(email, newInfo)) {
-                std::cout << "User edited successfully" << std::endl;
-                res.set_content("User edited", "text/plain");
+            json result = updateUserInfo(email, newInfo);
+            if (result["success"]) {
+                res.set_content(result.dump(), "application/json");
             } else {
-                std::cout << "Failed to edit user" << std::endl;
                 res.status = 404;
-                res.set_content("User not found", "text/plain");
+                res.set_content(result.dump(), "application/json");
             }
         });
 
-        // Get room list
-        svr.Get("/dashboard/admin/rooms", [](const httplib::Request& req, httplib::Response& res) {
-            res.set_header("Access-Control-Allow-Origin", "*");
-            res.set_header("Access-Control-Allow-Methods", "GET");
-            res.set_header("Access-Control-Allow-Headers", "Content-Type");
-
-            std::cout << "Getting room list" << std::endl;
-            json rooms = getRoomList();
-            std::cout << "Retrieved " << rooms.size() << " rooms" << std::endl;
-            res.set_content(rooms.dump(), "application/json");
-        });
-
-        // Add room
-        svr.Post("/dashboard/admin/room", [](const httplib::Request& req, httplib::Response& res) {
-            res.set_header("Access-Control-Allow-Origin", "*");
-            res.set_header("Access-Control-Allow-Methods", "POST");
-            res.set_header("Access-Control-Allow-Headers", "Content-Type");
-
-            json roomInfo = json::parse(req.body);
-            std::cout << "Adding new room" << std::endl;
-
-            if (addRoom(roomInfo)) {
-                std::cout << "Room added successfully" << std::endl;
-                res.set_content("Room added", "text/plain");
+        svr.Delete(R"(/admin/users/(.+))", [](const httplib::Request& req, httplib::Response& res) {
+            setCorsHeaders(res);
+            auto email = req.matches[1].str();
+            bool success = removeUser(email);
+            if (success) {
+                res.set_content(json({{"success", true}}).dump(), "application/json");
             } else {
-                std::cout << "Failed to add room" << std::endl;
-                res.status = 500;
-                res.set_content("Failed to add room", "text/plain");
+                res.status = 404;
+                res.set_content(json({{"error", "User not found or could not be deleted"}}).dump(), "application/json");
             }
         });
 
-        // Remove room
-        svr.Delete("/dashboard/admin/room", [](const httplib::Request& req, httplib::Response& res) {
-            res.set_header("Access-Control-Allow-Origin", "*");
-            res.set_header("Access-Control-Allow-Methods", "DELETE");
-            res.set_header("Access-Control-Allow-Headers", "Content-Type");
+        svr.Get("/admin/room-booking-stats", [](const httplib::Request& req, httplib::Response& res) {
+            setCorsHeaders(res);
+            json stats = getRoomBookingStats();
+            res.set_content(stats.dump(), "application/json");
+        });
 
-            auto roomId = req.get_param_value("roomId");
-            std::cout << "Removing room: " << roomId << std::endl;
+        svr.Get("/admin/booking-dates", [](const httplib::Request& req, httplib::Response& res) {
+            setCorsHeaders(res);
+            json dates = getBookingDates();
+            res.set_content(dates.dump(), "application/json");
+        });
 
-            if (removeRoom(roomId)) {
-                std::cout << "Room removed successfully" << std::endl;
-                res.set_content("Room removed", "text/plain");
+        svr.Get("/admin/coupons", [](const httplib::Request& req, httplib::Response& res) {
+            setCorsHeaders(res);
+            json coupons = getAllCoupons();
+            res.set_content(coupons.dump(), "application/json");
+        });
+
+        svr.Post("/admin/coupons", [](const httplib::Request& req, httplib::Response& res) {
+            setCorsHeaders(res);
+            json couponData = json::parse(req.body);
+            json result = addCoupon(couponData);
+            res.set_content(result.dump(), "application/json");
+        });
+
+        svr.Put(R"(/admin/coupons/(.+))", [](const httplib::Request& req, httplib::Response& res) {
+            setCorsHeaders(res);
+            auto couponName = req.matches[1].str();
+            json couponData = json::parse(req.body);
+            json result = updateCoupon(couponName, couponData);
+            if (result["success"]) {
+                res.set_content(result.dump(), "application/json");
             } else {
-                std::cout << "Failed to remove room" << std::endl;
                 res.status = 404;
-                res.set_content("Room not found", "text/plain");
+                res.set_content(result.dump(), "application/json");
             }
         });
 
-        // Edit room
-        svr.Put("/dashboard/admin/room", [](const httplib::Request& req, httplib::Response& res) {
-            res.set_header("Access-Control-Allow-Origin", "*");
-            res.set_header("Access-Control-Allow-Methods", "PUT");
-            res.set_header("Access-Control-Allow-Headers", "Content-Type");
-
-            auto roomId = req.get_param_value("roomId");
-            json newInfo = json::parse(req.body);
-            std::cout << "Editing room: " << roomId << std::endl;
-
-            if (editRoom(roomId, newInfo)) {
-                std::cout << "Room edited successfully" << std::endl;
-                res.set_content("Room edited", "text/plain");
+        svr.Delete(R"(/admin/coupons/(.+))", [](const httplib::Request& req, httplib::Response& res) {
+            setCorsHeaders(res);
+            auto couponName = req.matches[1].str();
+            json result = deleteCoupon(couponName);
+            if (result["success"]) {
+                res.set_content(result.dump(), "application/json");
             } else {
-                std::cout << "Failed to edit room" << std::endl;
                 res.status = 404;
-                res.set_content("Room not found", "text/plain");
+                res.set_content(result.dump(), "application/json");
             }
         });
 

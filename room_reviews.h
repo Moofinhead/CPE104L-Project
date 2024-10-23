@@ -4,10 +4,10 @@
 
 #include <string>
 #include "nlohmann/json.hpp"
-
+using namespace std;
 using json = nlohmann::json;
-
-void addRoomReview(int roomId, const std::string& username, const std::string& comment, int rating);
+//wala na toh bahala na
+void addRoomReview(int roomId, const string& username, const string& comment, int rating);
 json getRoomReviews(int roomId);
 void updateRoomRating(int roomId);
 
